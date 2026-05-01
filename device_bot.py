@@ -106,6 +106,7 @@ class DeviceBot:
     def get_storage_info(self):
         """
         Obtiene información de almacenamiento del dispositivo.
+        Versión mejorada con mejor manejo de errores y debugging.
         
         Returns:
             dict: {
@@ -120,44 +121,130 @@ class DeviceBot:
                 "adb", "shell", "df", "/data"
             ])
             
-            if output:
-                lines = output.strip().split("\n")
-                if len(lines) >= 2:
-                    # Formato típico:
-                    # Filesystem    Size    Used Available Use% Mounted on
-                    # /data        XXXXX   YYYY  ZZZZZ     XX% /data
-                    
-                    parts = lines[-1].split()
-                    if len(parts) >= 3:
+            if not output:
+                print(f"[DEBUG {self.device_serial}] No output from df command")
+                return {
+                    'total': 0,
+                    'used': 0,
+                    'available': 0,
+                    'percentage': 0,
+                    'raw': "No output from df command"
+                }
+            
+            print(f"[DEBUG {self.device_serial}] Output crudo de df: {repr(output)}")
+            
+            lines = output.strip().split("\n")
+            print(f"[DEBUG {self.device_serial}] Total de líneas: {len(lines)}")
+            
+            # Android puede devolver 2 o más líneas
+            # Línea 0: Header (Filesystem Size Used Available Use% Mounted)
+            # Línea 1: Datos (/data XXXX YYYY ZZZZ XX% /data)
+            
+            if len(lines) >= 2:
+                # Obtener la línea de datos (puede ser línea 1 o última)
+                data_line = None
+                for i, line in enumerate(lines[1:], 1):
+                    print(f"[DEBUG {self.device_serial}] Línea {i}: {repr(line)}")
+                    if "/data" in line:
+                        data_line = line
+                        break
+                
+                if not data_line:
+                    data_line = lines[-1]
+                    print(f"[DEBUG {self.device_serial}] Usando última línea: {repr(data_line)}")
+                
+                parts = data_line.split()
+                print(f"[DEBUG {self.device_serial}] Parts parseados: {parts}")
+                print(f"[DEBUG {self.device_serial}] Cantidad de partes: {len(parts)}")
+                
+                if len(parts) >= 4:
+                    try:
+                        # Intentar formato: Filesystem Size Used Available Use% Mounted
+                        # Index:           0         1    2    3         4    5
+                        
+                        total_blocks = int(parts[1])
+                        used_blocks = int(parts[2])
+                        available_blocks = int(parts[3])
+                        
+                        print(f"[DEBUG {self.device_serial}] Bloques parseados:")
+                        print(f"[DEBUG {self.device_serial}]   Total: {total_blocks}")
+                        print(f"[DEBUG {self.device_serial}]   Usado: {used_blocks}")
+                        print(f"[DEBUG {self.device_serial}]   Disponible: {available_blocks}")
+                        
+                        # Convertir bloques (1K cada uno) a MB
+                        total_mb = total_blocks // 1024
+                        used_mb = used_blocks // 1024
+                        available_mb = available_blocks // 1024
+                        
+                        # Evitar división por cero
+                        if total_mb > 0:
+                            percentage = (available_mb / total_mb) * 100
+                        else:
+                            percentage = 0
+                        
+                        print(f"[DEBUG {self.device_serial}] Convertido a MB:")
+                        print(f"[DEBUG {self.device_serial}]   Total: {total_mb}MB")
+                        print(f"[DEBUG {self.device_serial}]   Usado: {used_mb}MB")
+                        print(f"[DEBUG {self.device_serial}]   Disponible: {available_mb}MB")
+                        print(f"[DEBUG {self.device_serial}]   % Libre: {percentage:.2f}%")
+                        
+                        return {
+                            'total': total_mb,
+                            'used': used_mb,
+                            'available': available_mb,
+                            'percentage': round(percentage, 2),
+                            'raw': output
+                        }
+                    except (ValueError, IndexError) as e:
+                        print(f"[DEBUG {self.device_serial}] Error en formato 1: {e}")
+                        # Si falla, intentar índices alternativos
                         try:
-                            # Convertir de bloques a MB (cada bloque = 1K)
+                            # Alternativa: los índices podrían ser 0, 1, 2
+                            total_blocks = int(parts[0])
+                            used_blocks = int(parts[1])
                             available_blocks = int(parts[2])
+                            
+                            print(f"[DEBUG {self.device_serial}] Intentando formato alternativo...")
+                            print(f"[DEBUG {self.device_serial}]   Total: {total_blocks}")
+                            print(f"[DEBUG {self.device_serial}]   Usado: {used_blocks}")
+                            print(f"[DEBUG {self.device_serial}]   Disponible: {available_blocks}")
+                            
+                            total_mb = total_blocks // 1024
+                            used_mb = used_blocks // 1024
                             available_mb = available_blocks // 1024
                             
-                            # Calcular porcentaje (simplificado)
-                            total_blocks = int(parts[0])
-                            total_mb = total_blocks // 1024
-                            
-                            percentage = (available_mb / total_mb * 100) if total_mb > 0 else 0
+                            if total_mb > 0:
+                                percentage = (available_mb / total_mb) * 100
+                            else:
+                                percentage = 0
                             
                             return {
                                 'total': total_mb,
+                                'used': used_mb,
                                 'available': available_mb,
                                 'percentage': round(percentage, 2),
                                 'raw': output
                             }
-                        except (ValueError, IndexError):
-                            pass
+                        except Exception as e2:
+                            print(f"[DEBUG {self.device_serial}] Error en formato alternativo: {e2}")
+                else:
+                    print(f"[DEBUG {self.device_serial}] No hay suficientes partes: {len(parts)}")
+            else:
+                print(f"[DEBUG {self.device_serial}] No hay suficientes líneas: {len(lines)}")
             
             return {
                 'total': 0,
+                'used': 0,
                 'available': 0,
                 'percentage': 0,
-                'raw': output or "Error al parsear"
+                'raw': output or "No data available"
             }
+        
         except Exception as e:
+            print(f"[DEBUG {self.device_serial}] Exception general: {e}")
             return {
                 'total': 0,
+                'used': 0,
                 'available': 0,
                 'percentage': 0,
                 'raw': str(e)
@@ -200,14 +287,16 @@ class DeviceBot:
         """
         payload = {
             "id_dispositivo": self.device_serial,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp_iso": datetime.now().isoformat(),
+            "timestamp_legible": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "bateria": {
                 "porcentaje": battery,
                 "unidad": "%"
             },
             "almacenamiento": {
-                "disponible_mb": storage['available'],
                 "total_mb": storage['total'],
+                "usado_mb": storage.get('used', 0),
+                "disponible_mb": storage['available'],
                 "porcentaje_libre": storage['percentage'],
                 "unidad": "MB"
             },

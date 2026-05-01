@@ -86,7 +86,7 @@ class DeviceManager:
             # 5. Tomar screenshot si almacenamiento < 10%
             screenshot_taken = False
             if storage['percentage'] < 10:
-                log_message(logger, "WARN", f"[{device_serial}]  Almacenamiento bajo ({storage['percentage']}%). Tomando screenshot...")
+                log_message(logger, "WARN", f"[{device_serial}] ⚠️ Almacenamiento bajo ({storage['percentage']}%). Tomando screenshot...")
                 bot.take_screenshot()
                 screenshot_taken = True
             
@@ -117,7 +117,7 @@ class DeviceManager:
             log_message(logger, "WARN", "No se detectaron dispositivos conectados")
             return False
         
-        log_message(logger, "INFO", f" Ejecutando en {len(self.devices)} dispositivo(s): {', '.join(self.devices)}")
+        log_message(logger, "INFO", f"🚀 Ejecutando en {len(self.devices)} dispositivo(s): {', '.join(self.devices)}")
         
         # Crear un hilo por dispositivo
         self.threads = []
@@ -173,7 +173,7 @@ def main():
         print("\n" + "="*70)
         print("    ✅ EJECUCIÓN COMPLETADA EXITOSAMENTE")
         print("="*70)
-        print("\n Archivos guardados en:")
+        print("\n📁 Archivos guardados en:")
         print("   - Logs: ./logs/execution.log")
         print("   - Datos: ./outputs/device_*.txt")
         print("\n")
