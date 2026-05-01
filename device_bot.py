@@ -253,24 +253,71 @@ class DeviceBot:
     def take_screenshot(self):
         """
         Toma un screenshot del dispositivo cuando el almacenamiento es bajo.
-        El archivo se guarda en el directorio output.
+        El archivo se guarda en el directorio output como JPG (compatible con Windows).
         
         Returns:
             str: Ruta del archivo screenshot, o None si falla.
         """
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"screenshot_{self.device_serial}_{timestamp}.png"
-            filepath = os.path.join(self.output_folder, filename)
             
-            # Tomar screenshot y enviarlo a la PC
-            subprocess.check_output([
+            # Primero guardar como PNG temporal
+            png_filename = f"screenshot_{self.device_serial}_{timestamp}_temp.png"
+            png_filepath = os.path.join(self.output_folder, png_filename)
+            
+            # Tomar screenshot usando subprocess.run
+            result = subprocess.run([
                 "adb", "-s", self.device_serial,
                 "exec-out", "screencap", "-p"
-            ], stderr=subprocess.DEVNULL, stdout=open(filepath, 'wb'))
+            ], capture_output=True)
             
-            return filepath
-        except:
+            if result.returncode != 0:
+                print(f"[ERROR] ADB screencap falló: {result.stderr}")
+                return None
+            
+            # Guardar PNG
+            with open(png_filepath, 'wb') as f:
+                f.write(result.stdout)
+            
+            # Convertir a JPG (compatible con Windows)
+            try:
+                from PIL import Image
+                
+                # Abrir PNG
+                img = Image.open(png_filepath)
+                
+                # Guardar como JPG
+                jpg_filename = f"screenshot_{self.device_serial}_{timestamp}.jpg"
+                jpg_filepath = os.path.join(self.output_folder, jpg_filename)
+                
+                # Convertir a RGB si es necesario
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'RGBA':
+                        rgb_img.paste(img, mask=img.split()[-1])
+                    else:
+                        rgb_img.paste(img)
+                    rgb_img.save(jpg_filepath, 'JPEG', quality=95)
+                else:
+                    img.save(jpg_filepath, 'JPEG', quality=95)
+                
+                # Eliminar PNG temporal
+                try:
+                    os.remove(png_filepath)
+                except:
+                    pass
+                
+                return jpg_filepath
+            except ImportError:
+                # Si no está PIL, devolver PNG
+                print(f"[ADVERTENCIA] PIL no instalado. Screenshot guardado como PNG")
+                return png_filepath
+            except Exception as e:
+                print(f"[ERROR] Conversión a JPG: {e}")
+                return png_filepath
+                
+        except Exception as e:
+            print(f"[ERROR] Al tomar screenshot: {e}")
             return None
     
     def create_payload(self, battery, storage, screenshot_taken=False):

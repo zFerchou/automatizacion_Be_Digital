@@ -37,7 +37,8 @@ class DeviceManager:
             devices = []
             for line in lines:
                 line = line.strip()
-                if line and "device" in line and "offline" not in line and "emulator" not in line.lower():
+                # Aceptar TANTO dispositivos físicos COMO emuladores
+                if line and "device" in line and "offline" not in line:
                     # Formato: "serial device" o "emulator-5554 device"
                     serial = line.split()[0]
                     if serial:
@@ -142,7 +143,7 @@ class DeviceManager:
 def main():
     """Función principal."""
     print("\n" + "="*70)
-    print("    🤖 AUTOMATIZACIÓN PARALELA DE DISPOSITIVOS ANDROID - Be Digital")
+    print("     AUTOMATIZACIÓN PARALELA DE DISPOSITIVOS ANDROID - Be Digital")
     print("="*70 + "\n")
     
     log_message(logger, "INFO", "Iniciando script de automatización...")
@@ -173,7 +174,7 @@ def main():
         print("\n" + "="*70)
         print("    ✅ EJECUCIÓN COMPLETADA EXITOSAMENTE")
         print("="*70)
-        print("\n📁 Archivos guardados en:")
+        print("\n Archivos guardados en:")
         print("   - Logs: ./logs/execution.log")
         print("   - Datos: ./outputs/device_*.txt")
         print("\n")
