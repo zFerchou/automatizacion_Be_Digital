@@ -4,59 +4,59 @@
 
 echo ""
 echo "======================================================================"
-echo "    🚀 INICIANDO DASHBOARD COMPLETO - Be Digital"
+echo "     INICIANDO DASHBOARD COMPLETO - Be Digital"
 echo "======================================================================"
 echo ""
 
 # Verificar si Node.js está instalado
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js no está instalado"
+    echo " Node.js no está instalado"
     echo "   Descarga desde: https://nodejs.org/"
     exit 1
 fi
 
 # Verificar si Python está instalado
 if ! command -v python3 &> /dev/null; then
-    echo "❌ Python3 no está instalado"
+    echo " Python3 no está instalado"
     exit 1
 fi
 
-echo "✅ Node.js detectado"
-echo "✅ Python detectado"
+echo " Node.js detectado"
+echo " Python detectado"
 echo ""
 
 # Verificar si package.json existe
 if [ ! -f "package.json" ]; then
-    echo "❌ package.json no encontrado"
+    echo " package.json no encontrado"
     echo "   Asegúrate de estar en la carpeta correcta"
     exit 1
 fi
 
-echo "📦 Instalando dependencias de React..."
+echo " Instalando dependencias de React..."
 npm install
 if [ $? -ne 0 ]; then
-    echo "❌ Error en npm install"
+    echo " Error en npm install"
     exit 1
 fi
 
-echo "✅ Dependencias instaladas"
+echo " Dependencias instaladas"
 echo ""
 
-echo "🔨 Compilando React (npm run build)..."
+echo " Compilando React (npm run build)..."
 npm run build
 if [ $? -ne 0 ]; then
-    echo "❌ Error en build"
+    echo " Error en build"
     exit 1
 fi
 
-echo "✅ React compilado"
+echo " React compilado"
 echo ""
 
 # Instalar Flask-CORS si no está
 pip3 install flask-cors > /dev/null 2>&1
 
 echo "======================================================================"
-echo "    ✅ SETUP COMPLETADO - Iniciando servicios..."
+echo "     SETUP COMPLETADO - Iniciando servicios..."
 echo "======================================================================"
 echo ""
 
@@ -71,7 +71,7 @@ echo ""
 # Crear función para abrir terminal
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    echo "🍎 Detectado macOS"
+    echo " Detectado macOS"
     echo ""
     
     open -a Terminal "$(dirname "$0")" &
@@ -106,7 +106,7 @@ EOF
     open http://localhost:3000
 else
     # Linux
-    echo "🐧 Detectado Linux"
+    echo " Detectado Linux"
     echo ""
     
     # Intentar abrir con gnome-terminal
@@ -123,7 +123,7 @@ else
         sleep 1
         xterm -e "cd '$(pwd)'; npm start" &
     else
-        echo "⚠️  No se encontró terminal gráfica"
+        echo "  No se encontró terminal gráfica"
         echo "   Abre 3 terminales manualmente y ejecuta:"
         echo ""
         echo "   Terminal 1: python main.py"
@@ -140,6 +140,6 @@ fi
 
 echo ""
 echo "======================================================================"
-echo "    🎉 TODO INICIADO - Abre: http://localhost:3000"
+echo "     TODO INICIADO - Abre: http://localhost:3000"
 echo "======================================================================"
 echo ""

@@ -3,14 +3,14 @@ REM Script para iniciar el Dashboard completo en Windows
 
 echo.
 echo ======================================================================
-echo    🚀 INICIANDO DASHBOARD COMPLETO - Be Digital
+echo     INICIANDO DASHBOARD COMPLETO - Be Digital
 echo ======================================================================
 echo.
 
 REM Verificar si Node.js está instalado
 where node >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Node.js no está instalado
+    echo  Node.js no está instalado
     echo    Descarga desde: https://nodejs.org/
     pause
     exit /b 1
@@ -19,43 +19,43 @@ if %ERRORLEVEL% NEQ 0 (
 REM Verificar si Python está instalado
 where python >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Python no está instalado
+    echo  Python no está instalado
     pause
     exit /b 1
 )
 
-echo ✅ Node.js detectado
-echo ✅ Python detectado
+echo  Node.js detectado
+echo  Python detectado
 echo.
 
 REM Verificar si package.json existe
 if not exist "package.json" (
-    echo ❌ package.json no encontrado
+    echo  package.json no encontrado
     echo    Asegúrate de estar en la carpeta correcta
     pause
     exit /b 1
 )
 
-echo 📦 Instalando dependencias de React...
+echo  Instalando dependencias de React...
 call npm install
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Error en npm install
+    echo  Error en npm install
     pause
     exit /b 1
 )
 
-echo ✅ Dependencias instaladas
+echo  Dependencias instaladas
 
 echo.
-echo 🔨 Compilando React (npm run build)...
+echo  Compilando React (npm run build)...
 call npm run build
 if %ERRORLEVEL% NEQ 0 (
-    echo ❌ Error en build
+    echo  Error en build
     pause
     exit /b 1
 )
 
-echo ✅ React compilado
+echo  React compilado
 echo.
 
 REM Instalar Flask-CORS si no está
@@ -63,7 +63,7 @@ pip install flask-cors >nul 2>nul
 
 echo.
 echo ======================================================================
-echo    ✅ SETUP COMPLETADO - Iniciando servicios...
+echo     SETUP COMPLETADO - Iniciando servicios...
 echo ======================================================================
 echo.
 
@@ -87,6 +87,6 @@ start "Terminal 2 - React" cmd /k npm start
 
 echo.
 echo ======================================================================
-echo    🎉 TODO INICIADO - Abre: http://localhost:3000
+echo     TODO INICIADO - Abre: http://localhost:3000
 echo ======================================================================
 echo.

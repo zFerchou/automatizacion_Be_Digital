@@ -1,8 +1,3 @@
-"""
-api.py - Backend Flask
-Ejecuta main.py correctamente y sirve screenshots
-"""
-
 from flask import Flask, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 import json
@@ -218,7 +213,7 @@ def get_logs():
                 })
         return jsonify({
             'status': 'success',
-            'logs': ['Archivo de log no encontrado. Ejecute main.py primero.'],
+            'logs': ['Archivo de log no encontrado. Ejecute primero.'],
             'total_lines': 1,
             'errors': [],
             'warnings': [],

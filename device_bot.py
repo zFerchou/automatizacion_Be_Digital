@@ -1,8 +1,3 @@
-"""
-device_bot.py - Robot de Dispositivo
-Clase que encapsula toda la lógica ADB para un dispositivo individual.
-"""
-
 import subprocess
 import re
 import json

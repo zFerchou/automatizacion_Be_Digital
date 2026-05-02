@@ -1,9 +1,3 @@
-"""
-main.py - Orquestador Principal
-Script que detecta dispositivos ADB y ejecuta tareas en paralelo usando threading.
-Examen Práctico - Be Digital | Posición: Líder de Proyecto
-"""
-
 import subprocess
 import threading
 import os
@@ -12,7 +6,6 @@ from datetime import datetime
 from device_bot import DeviceBot
 from utils import setup_logging, log_message
 
-# Configurar logging
 logger = setup_logging()
 
 class DeviceManager:
@@ -40,7 +33,7 @@ class DeviceManager:
                 line = line.strip()
                 # Aceptar TANTO dispositivos físicos COMO emuladores
                 if line and "device" in line and "offline" not in line:
-                    # Formato: "serial device" o "emulator-5554 device"
+                    # Formato serial device
                     serial = line.split()[0]
                     if serial:
                         devices.append(serial)
