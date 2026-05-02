@@ -16,9 +16,9 @@ function DeviceCard({ device }) {
         <span className="device-name">{device.id_dispositivo || 'Desconocido'}</span>
         <span className="device-status">
           {desconectado ? (
-            <span style={{ color: '#f44336' }}>● Desconectado</span>
+            <span style={{ color: '#f44336' }}></span>
           ) : (
-            <span style={{ color: '#4caf50' }}>● Conectado</span>
+            <span style={{ color: '#4caf50' }}></span>
           )}
         </span>
       </div>

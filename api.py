@@ -1,5 +1,5 @@
 """
-api.py - Backend Flask DEFINITIVO
+api.py - Backend Flask
 Ejecuta main.py correctamente y sirve screenshots
 """
 
@@ -24,16 +24,14 @@ def get_python_executable():
     """
     Obtiene el path al ejecutable de Python (del venv si existe)
     """
-    # Si estamos en un venv, usar ese Python
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         return sys.executable
     
-    # Buscar python en venv
     venv_paths = [
-        os.path.join(os.getcwd(), 'venv', 'Scripts', 'python.exe'),  # Windows
-        os.path.join(os.getcwd(), 'venv', 'Scripts', 'python'),      # Windows alt
-        os.path.join(os.getcwd(), 'venv', 'bin', 'python'),          # Linux/Mac
-        os.path.join(os.getcwd(), 'venv', 'bin', 'python3'),         # Linux/Mac alt
+        os.path.join(os.getcwd(), 'venv', 'Scripts', 'python.exe'),
+        os.path.join(os.getcwd(), 'venv', 'Scripts', 'python'),
+        os.path.join(os.getcwd(), 'venv', 'bin', 'python'),
+        os.path.join(os.getcwd(), 'venv', 'bin', 'python3'),
     ]
     
     for venv_python in venv_paths:
@@ -41,14 +39,14 @@ def get_python_executable():
             print(f"[API] Usando Python del venv: {venv_python}")
             return venv_python
     
-    # Si no encuentra venv, usar el actual
     print(f"[API] Usando Python actual: {sys.executable}")
     return sys.executable
 
 def parse_devices_from_files():
     """
     Lee y parsea los archivos device_*.txt
-    Retorna lista de dispositivos con datos más recientes
+    Retorna lista de dispositivos con datos mas recientes
+    SOLO retorna dispositivos cuyo ULTIMO estado NO es 'desconectado'
     """
     devices = []
     
@@ -67,7 +65,8 @@ def parse_devices_from_files():
                                     try:
                                         data = json.loads(json_str)
                                         if 'id_dispositivo' in data:
-                                            devices.append(data)
+                                            if data.get('estado') != 'desconectado':
+                                                devices.append(data)
                                             break
                                     except json.JSONDecodeError:
                                         continue
@@ -92,7 +91,6 @@ def get_screenshots_for_device(device_id):
     except:
         pass
     
-    # Ordenar por más reciente primero
     screenshots.sort(reverse=True)
     return screenshots
 
@@ -110,10 +108,8 @@ def update_device_connection_status(current_devices):
         except Exception as e:
             print(f"[API] Error leyendo estado previo de dispositivos: {e}")
 
-    # Dispositivos desconectados
     disconnected = set(prev_devices) - set(current_devices)
     for device_id in disconnected:
-        # Registrar evento de desconexión en el archivo correspondiente
         file_path = os.path.join('./outputs', f'device_{device_id}.txt')
         timestamp = datetime.now().isoformat()
         timestamp_legible = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -126,12 +122,11 @@ def update_device_connection_status(current_devices):
         }
         try:
             with open(file_path, 'a', encoding='utf-8') as f:
-                f.write(f"\n=== DESCONEXIÓN ===\n{json.dumps(disconnect_event, ensure_ascii=False, indent=2)}\n")
+                f.write(f"\n{json.dumps(disconnect_event, ensure_ascii=False, indent=2)}\n")
             print(f"[API] Dispositivo {device_id} marcado como desconectado.")
         except Exception as e:
-            print(f"[API] Error registrando desconexión de {device_id}: {e}")
+            print(f"[API] Error registrando desconexion de {device_id}: {e}")
 
-    # Guardar el nuevo estado
     try:
         with open(CONNECTED_DEVICES_FILE, 'w', encoding='utf-8') as f:
             json.dump(current_devices, f)
@@ -140,64 +135,15 @@ def update_device_connection_status(current_devices):
 
 @app.route('/api/devices', methods=['GET'])
 def get_devices():
-    """Obtiene dispositivos actuales y desconectados"""
+    """Obtiene SOLO dispositivos CONECTADOS"""
     devices = parse_devices_from_files()
-    # Obtener todos los device_ids que han existido
-    all_device_ids = set()
-    device_map = {}
+    
     for device in devices:
-        device_id = device.get('id_dispositivo')
-        if device_id:
-            all_device_ids.add(device_id)
-            # Guardar el último estado conocido
-            device_map[device_id] = device
-    # Leer el registro de desconexiones
-    import tempfile
-    CONNECTED_DEVICES_FILE = os.path.join(tempfile.gettempdir(), 'connected_devices.json')
-    prev_devices = []
-    if os.path.exists(CONNECTED_DEVICES_FILE):
-        try:
-            with open(CONNECTED_DEVICES_FILE, 'r', encoding='utf-8') as f:
-                prev_devices = json.load(f)
-        except Exception as e:
-            print(f"[API] Error leyendo estado previo de dispositivos: {e}")
-        for device_id in prev_devices:
-            all_device_ids.add(device_id)
-    # Construir la lista final
-    result = []
-    for device_id in all_device_ids:
-        device = device_map.get(device_id)
-        if device:
-            # Si tiene estado desconectado, lo dejamos así
-            result.append(device)
-        else:
-            # Buscar el archivo y obtener el último evento
-            file_path = os.path.join('./outputs', f'device_{device_id}.txt')
-            last_data = None
-            if os.path.exists(file_path):
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    json_blocks = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
-                    for json_str in reversed(json_blocks):
-                        try:
-                            data = json.loads(json_str)
-                            if data.get('id_dispositivo') == device_id:
-                                last_data = data
-                                break
-                        except Exception:
-                            continue
-            if last_data:
-                last_data['estado'] = 'desconectado'
-                result.append(last_data)
-            else:
-                # Si no hay datos, crear uno básico
-                result.append({
-                    'id_dispositivo': device_id,
-                    'estado': 'desconectado',
-                    'timestamp_legible': '',
-                })
-    print(f"[API] Dispositivos encontrados (incluyendo desconectados): {len(result)}")
-    return jsonify(result)
+        device_id = device.get('id_dispositivo', '')
+        device['screenshots'] = get_screenshots_for_device(device_id)
+    
+    print(f"[API] Dispositivos conectados: {len(devices)}")
+    return jsonify(devices)
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
@@ -221,7 +167,7 @@ def get_status():
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
-    """Obtiene histórico"""
+    """Obtiene historico"""
     history = []
     try:
         if os.path.exists('./outputs'):
@@ -230,15 +176,12 @@ def get_history():
                     filepath = os.path.join('./outputs', file)
                     with open(filepath, 'r', encoding='utf-8') as f:
                         content = f.read()
-                        # Buscar bloques JSON y también logs de desconexión
                         json_blocks = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
                         for json_str in json_blocks:
                             try:
                                 data = json.loads(json_str)
-                                # Buscar si es un evento de desconexión
                                 if data.get('estado') == 'desconectado' and data.get('mensaje'):
                                     data['isDisconnectLog'] = True
-                                # Agregar screenshots si existen
                                 device_id = data.get('id_dispositivo')
                                 if device_id:
                                     data['screenshots'] = get_screenshots_for_device(device_id)
@@ -249,6 +192,46 @@ def get_history():
         print(f"Error en get_history: {e}")
     history.sort(key=lambda x: x.get('timestamp_iso', ''), reverse=True)
     return jsonify(history[:100])
+
+@app.route('/api/logs', methods=['GET'])
+def get_logs():
+    """
+    Obtiene las ultimas lineas del log de ejecucion.
+    """
+    try:
+        log_file = './logs/execution.log'
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                lines = f.readlines()
+                lines = [line.strip() for line in lines if line.strip()]
+                
+                errors = [l for l in lines if 'ERROR' in l]
+                warnings = [l for l in lines if 'WARNING' in l or 'WARN' in l]
+                
+                return jsonify({
+                    'status': 'success',
+                    'logs': lines,
+                    'total_lines': len(lines),
+                    'errors': errors,
+                    'warnings': warnings,
+                    'filename': 'execution.log'
+                })
+        return jsonify({
+            'status': 'success',
+            'logs': ['Archivo de log no encontrado. Ejecute main.py primero.'],
+            'total_lines': 1,
+            'errors': [],
+            'warnings': [],
+            'filename': 'execution.log'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'logs': [f'Error al leer logs: {str(e)}'],
+            'total_lines': 1,
+            'errors': [str(e)],
+            'warnings': []
+        })
 
 @app.route('/api/run-main', methods=['POST'])
 def run_main():
@@ -267,15 +250,16 @@ def run_main():
         print(f"[API] Directorio: {current_dir}")
         print(f"[API] Python: {python_exe}")
         print(f"[API] main.py: {main_py_path}")
-        print(f"[API] ¿Existe? {os.path.exists(main_py_path)}")
+        print(f"[API] Existe: {os.path.exists(main_py_path)}")
         
-        # Ejecutar main.py con el Python del venv
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         result = subprocess.run(
             [python_exe, main_py_path],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='ignore',
             timeout=300,
             cwd=current_dir,
             env=env
@@ -284,20 +268,37 @@ def run_main():
         print("[API] main.py completado")
         print(f"[API] Return code: {result.returncode}")
         
+        # SOBRESCRIBIR el log para mostrar solo la ejecucion actual
+        os.makedirs('./logs', exist_ok=True)
+        with open('./logs/execution.log', 'w', encoding='utf-8') as f:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            f.write(f"{'='*70}\n")
+            f.write(f"EJECUCION: {timestamp}\n")
+            f.write(f"{'='*70}\n\n")
+            
+            if result.stdout:
+                f.write("--- SALIDA DEL SCRIPT ---\n")
+                f.write(result.stdout.strip() + "\n\n")
+            
+            if result.stderr:
+                f.write("--- LOGS DEL SISTEMA ---\n")
+                f.write(result.stderr.strip() + "\n\n")
+            
+            f.write(f"{'='*70}\n")
+            f.write(f"FIN EJECUCION (codigo: {result.returncode})\n")
+            f.write(f"{'='*70}\n")
+        
         if result.stdout:
             print(f"[API] Output: {result.stdout[-300:]}")
         if result.stderr:
             print(f"[API] Stderr: {result.stderr[-300:]}")
         
-        # Esperar a que se escriban los archivos
         time.sleep(2)
         
-        # Leer datos NUEVOS
         devices = parse_devices_from_files()
         current_device_ids = [d.get('id_dispositivo') for d in devices if d.get('id_dispositivo')]
         update_device_connection_status(current_device_ids)
         
-        # Agregar screenshots
         for device in devices:
             device_id = device.get('id_dispositivo', '')
             screenshots = get_screenshots_for_device(device_id)
@@ -313,13 +314,13 @@ def run_main():
         })
         
     except subprocess.TimeoutExpired:
-        print("[API] ❌ ERROR: Timeout")
+        print("[API] ERROR: Timeout")
         return jsonify({
             'status': 'error',
             'message': 'Timeout al ejecutar main.py'
         }), 408
     except Exception as e:
-        print(f"[API] ❌ ERROR: {e}")
+        print(f"[API] ERROR: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -333,7 +334,6 @@ def get_screenshot(filename):
     Sirve un screenshot
     """
     try:
-        # Validar que el archivo existe y está en outputs
         filepath = os.path.join('./outputs', filename)
         if os.path.exists(filepath) and filename.startswith('screenshot_'):
             return send_file(filepath, mimetype='image/jpeg')
@@ -364,7 +364,7 @@ def index():
 
 @app.route('/<path:path>', methods=['GET'])
 def static_files(path):
-    """Sirve archivos estáticos"""
+    """Sirve archivos estaticos"""
     try:
         return send_from_directory('build', path)
     except:
@@ -381,6 +381,7 @@ if __name__ == '__main__':
     print("   GET  /api/devices")
     print("   GET  /api/status")
     print("   GET  /api/history")
+    print("   GET  /api/logs")
     print("   POST /api/run-main")
     print("   GET  /api/screenshot/<filename>")
     print("\nPresiona Ctrl+C para detener")

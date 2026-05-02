@@ -1,6 +1,6 @@
 """
 utils.py - Utilidades
-Funciones auxiliares para logging, variables de entorno y gestión de archivos.
+Funciones auxiliares para logging, variables de entorno y gestion de archivos.
 """
 
 import os
@@ -51,15 +51,19 @@ def setup_logging():
     # Asegurar que la carpeta logs existe
     ensure_directories(['./logs'])
     
-    # Nombre del archivo de log
-    log_filename = f"./logs/execution_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    # Nombre del archivo de log FIJO para que la API pueda leerlo
+    log_filename = "./logs/execution.log"
     
     # Crear logger
     logger = logging.getLogger('AutomationBot')
     logger.setLevel(logging.DEBUG)
     
-    # Handler para archivo
-    file_handler = logging.FileHandler(log_filename, encoding='utf-8')
+    # Evitar duplicar handlers si se llama multiples veces
+    if logger.handlers:
+        logger.handlers.clear()
+    
+    # Handler para archivo (modo append para no perder historial)
+    file_handler = logging.FileHandler(log_filename, encoding='utf-8', mode='a')
     file_handler.setLevel(logging.DEBUG)
     
     # Handler para consola
@@ -116,7 +120,7 @@ def parse_device_list(adb_output):
         list: Lista de seriales de dispositivos.
     """
     devices = []
-    lines = adb_output.strip().split('\n')[1:]  # Saltar primera línea
+    lines = adb_output.strip().split('\n')[1:]  # Saltar primera linea
     
     for line in lines:
         line = line.strip()

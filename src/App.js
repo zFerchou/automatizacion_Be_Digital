@@ -4,29 +4,46 @@ import './App.css';
 import DeviceCard from './components/DeviceCard';
 import HistoryTable from './components/HistoryTable';
 import StatusBar from './components/StatusBar';
+import LogViewer from './components/LogViewer';
 
 function App() {
   const [devices, setDevices] = useState([]);
   const [history, setHistory] = useState([]);
   const [status, setStatus] = useState(null);
+  const [logs, setLogs] = useState({ 
+    logs: ['Cargando...'], 
+    errors: [], 
+    warnings: [], 
+    total_lines: 1 
+  });
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(5);
   const [executing, setExecuting] = useState(false);
 
   const API_URL = 'http://localhost:5000/api';
 
-  // Función para obtener datos
   const fetchData = async () => {
     try {
-      const [devicesRes, statusRes, historyRes] = await Promise.all([
+      const [devicesRes, statusRes, historyRes, logsRes] = await Promise.all([
         axios.get(`${API_URL}/devices`),
         axios.get(`${API_URL}/status`),
-        axios.get(`${API_URL}/history`)
+        axios.get(`${API_URL}/history`),
+        axios.get(`${API_URL}/logs`)
       ]);
 
-      setDevices(devicesRes.data);
-      setStatus(statusRes.data);
-      setHistory(historyRes.data);
+      setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : []);
+      setStatus(statusRes.data || null);
+      setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
+      
+      if (logsRes.data && logsRes.data.logs) {
+        setLogs({
+          logs: Array.isArray(logsRes.data.logs) ? logsRes.data.logs : [],
+          errors: Array.isArray(logsRes.data.errors) ? logsRes.data.errors : [],
+          warnings: Array.isArray(logsRes.data.warnings) ? logsRes.data.warnings : [],
+          total_lines: logsRes.data.total_lines || 0
+        });
+      }
+      
       setLoading(false);
       setCountdown(5);
     } catch (error) {
@@ -35,45 +52,38 @@ function App() {
     }
   };
 
-  // Función para ejecutar main.py desde el frontend
   const handleRunMain = async () => {
     try {
       setExecuting(true);
-      const response = await axios.post(`${API_URL}/run-main`);
+      await axios.post(`${API_URL}/run-main`);
       
-      console.log('main.py ejecutado:', response.data);
-      
-      // Esperar un segundo y luego actualizar datos
       setTimeout(() => {
         fetchData();
         setExecuting(false);
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error('Error ejecutando main.py:', error);
+      alert('Error al ejecutar main.py');
       setExecuting(false);
+      fetchData();
     }
   };
 
-  // Obtener datos al montar el componente
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Actualizar cada 5 segundos
   useEffect(() => {
     const interval = setInterval(() => {
       fetchData();
     }, 5000);
-
     return () => clearInterval(interval);
   }, []);
 
-  // Countdown para siguiente actualización
   useEffect(() => {
     const countdownInterval = setInterval(() => {
       setCountdown(prev => (prev <= 1 ? 5 : prev - 1));
     }, 1000);
-
     return () => clearInterval(countdownInterval);
   }, []);
 
@@ -97,7 +107,7 @@ function App() {
 
       <main className="main-content">
         <div className="devices-section">
-          <h2>Dispositivos Conectados</h2>
+          <h2>Dispositivos Registrados</h2>
           <div className="devices-grid">
             {loading ? (
               <div className="loading">
@@ -106,10 +116,9 @@ function App() {
               </div>
             ) : devices.length === 0 ? (
               <div className="no-devices">
-                <div className="icon">---</div>
-                <p>Esperando que se conecte un dispositivo...</p>
+                <p>No hay dispositivos registrados</p>
                 <p style={{ fontSize: '0.9em', marginTop: '10px', color: '#999' }}>
-                  Presiona "Ejecutar main.py" para recolectar datos
+                  Conecte un dispositivo y presione "Ejecutar"
                 </p>
               </div>
             ) : (
@@ -118,6 +127,11 @@ function App() {
               ))
             )}
           </div>
+        </div>
+
+        <div className="logs-section">
+          <h2>Log de Ejecucion</h2>
+          <LogViewer logs={logs} />
         </div>
 
         <div className="history-section">
