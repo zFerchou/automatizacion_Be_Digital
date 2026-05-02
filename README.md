@@ -512,26 +512,7 @@ dist/
 .vscode/
 ```
 
----
 
-## Flujo de Uso Tipico
-
-### Dia 1: Instalacion (30 minutos)
-1. Instalar Python, Node.js, Android SDK
-2. Crear entorno virtual
-3. Instalar dependencias
-4. Descargar archivos del proyecto
-5. Compilar React con npm run build
-
-### Dia 2+: Uso Diario (2 minutos)
-1. Conectar dispositivos Android
-2. Abrir 3 terminales
-3. Ejecutar scripts en cada terminal
-4. Abrir navegador: http://localhost:3000
-5. Presionar boton "Ejecutar main.py"
-6. Ver datos en tiempo real
-
----
 
 ## Despliegue 
 
